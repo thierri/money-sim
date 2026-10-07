@@ -13,13 +13,15 @@ interface Props {
   maxCompared: number
   colors: string[]
   canSave: boolean
+  loading: boolean
+  error: string | null
   onSave: (name: string) => void
   onLoad: (s: Scenario) => void
-  onDelete: (id: string) => void
+  onDelete: (s: Scenario) => void
   onToggleCompare: (id: string) => void
 }
 
-export function ScenariosPanel({ scenarios, compared, maxCompared, colors, canSave, onSave, onLoad, onDelete, onToggleCompare }: Props) {
+export function ScenariosPanel({ scenarios, compared, maxCompared, colors, canSave, loading, error, onSave, onLoad, onDelete, onToggleCompare }: Props) {
   const [name, setName] = useState('')
   const submit = () => {
     const n = name.trim()
@@ -42,7 +44,10 @@ export function ScenariosPanel({ scenarios, compared, maxCompared, colors, canSa
         />
         <button type="submit" className="btn btn-primary shrink-0" disabled={!name.trim() || !canSave}>Salvar</button>
       </form>
-      {scenarios.length === 0 ? (
+      {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
+      {loading ? (
+        <p className="mt-3 text-sm text-ink-3">Carregando cenários…</p>
+      ) : scenarios.length === 0 ? (
         <p className="mt-3 text-sm text-ink-3">Salve os parâmetros atuais para reabri-los depois ou compará-los no gráfico de linha.</p>
       ) : (
         <>
@@ -64,7 +69,7 @@ export function ScenariosPanel({ scenarios, compared, maxCompared, colors, canSa
                     <span className="truncate">{s.name}</span>
                   </label>
                   <button type="button" className="btn px-2 py-1 text-xs" onClick={() => onLoad(s)}>Abrir</button>
-                  <button type="button" className="btn px-2 py-1 text-xs" aria-label={`Excluir ${s.name}`} onClick={() => onDelete(s.id)}>Excluir</button>
+                  <button type="button" className="btn px-2 py-1 text-xs" aria-label={`Excluir ${s.name}`} onClick={() => onDelete(s)}>Excluir</button>
                 </li>
               )
             })}

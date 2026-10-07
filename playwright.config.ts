@@ -24,6 +24,8 @@ export default defineConfig({
     command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
     port: PORT,
     reuseExistingServer: false,
+    // Banco em memória: cada execução começa sem cenários e não toca em data/.
+    env: { MONEY_SIM_DB: ':memory:' },
     timeout: 120_000,
   },
 })

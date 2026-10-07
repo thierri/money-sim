@@ -7,6 +7,7 @@ import { SummaryCards } from './components/SummaryCards'
 import { defaultForm, validate, type FormValues } from './lib/form'
 import { fmtBRL } from './lib/format'
 import { findGoalMonth, groupByYear, monthLabel, monthlyPeriods, simulate, type MonthRow, type SimulationParams } from './lib/simulate'
+import { useScenarios } from './lib/scenarios'
 import { usePersistentState } from './lib/storage'
 
 /** O gráfico compara até 3 cenários: o atual + 2 salvos. */
@@ -15,7 +16,7 @@ const SERIES_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)']
 
 export default function App() {
   const [form, setForm] = usePersistentState<FormValues>('money-sim:form', defaultForm, (stored) => ({ ...defaultForm(), ...stored }))
-  const [scenarios, setScenarios] = usePersistentState<Scenario[]>('money-sim:scenarios', () => [])
+  const { scenarios, loading: scenariosLoading, error: scenariosError, save: saveScenario, remove: removeScenario } = useScenarios()
   const [compared, setCompared] = usePersistentState<string[]>('money-sim:compared', () => [])
   const [chartMode, setChartMode] = usePersistentState<'bar' | 'line'>('money-sim:chart', () => 'bar')
   const [tableView, setTableView] = usePersistentState<'month' | 'year'>('money-sim:table', () => 'year')
@@ -103,11 +104,13 @@ export default function App() {
             maxCompared={MAX_COMPARED}
             colors={SERIES_COLORS.slice(1)}
             canSave={!hasErrors}
-            onSave={(name) => setScenarios((list) => [...list, { id: crypto.randomUUID(), name, form }])}
+            loading={scenariosLoading}
+            error={scenariosError}
+            onSave={(name) => saveScenario(name, form)}
             onLoad={(s) => setForm({ ...defaultForm(), ...s.form })}
-            onDelete={(id) => {
-              setScenarios((list) => list.filter((s) => s.id !== id))
-              setCompared((ids) => ids.filter((x) => x !== id))
+            onDelete={(s) => {
+              removeScenario(s)
+              setCompared((ids) => ids.filter((x) => x !== s.id))
             }}
             onToggleCompare={(id) => {
               setCompared((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id].slice(0, MAX_COMPARED)))
