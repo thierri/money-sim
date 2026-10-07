@@ -30,11 +30,15 @@ for (const locale of LOCALES) {
       await expect(page.locator('tbody tr').first().locator('th')).toContainText('set/26')
     })
 
-    test('eixo X do gráfico mostra datas, não "Ano N"', async ({ page }) => {
+    test('gráfico é mês a mês, com datas no eixo X', async ({ page }) => {
       await openApp(page)
-      // Data fixa em 15/09/2026: o ano 1 termina em ago/27.
+      // Data fixa em 15/09/2026 e horizonte de 10 anos: 120 meses, de set/26 a ago/36.
       const chart = page.locator('section[aria-labelledby="chart-title"]')
-      await expect(chart.locator('.recharts-cartesian-axis-tick-value').first()).toHaveText('ago/27')
+      await expect(chart.locator('.recharts-bar-rectangles').first().locator('.recharts-bar-rectangle')).toHaveCount(120)
+      // Os rótulos do eixo Y começam com "R$"; os demais são do eixo X.
+      const ticks = chart.locator('.recharts-cartesian-axis-tick-value').filter({ hasNotText: 'R$' })
+      await expect(ticks.last()).toHaveText('ago/36')
+      for (const t of await ticks.allTextContents()) expect(t).toMatch(/^[a-z]{3}\/\d{2}$/)
       await expect(chart.getByRole('application')).not.toContainText('Ano')
     })
   })

@@ -1,12 +1,10 @@
 import { fmtBRL, fmtPercent } from '../lib/format'
 import { FitText } from './FitText'
-import { MONTH_NAMES, type MonthRow, type SimulationResult } from '../lib/simulate'
+import type { SimulationResult } from '../lib/simulate'
 
 interface Props {
   result: SimulationResult
   initial: number
-  goal: number | null
-  goalHit: MonthRow | 'start' | null
 }
 
 function Card({ label, value, sub, swatch }: { label: string; value: string; sub?: string; swatch?: string }) {
@@ -22,30 +20,13 @@ function Card({ label, value, sub, swatch }: { label: string; value: string; sub
   )
 }
 
-function goalText(goal: number, hit: MonthRow | 'start' | null): { value: string; sub: string } {
-  if (hit === 'start') return { value: 'Já atingida', sub: `Meta de ${fmtBRL(goal)}` }
-  if (!hit) return { value: 'Não atingida', sub: `Meta de ${fmtBRL(goal)} no horizonte` }
-  const years = Math.floor(hit.index / 12)
-  const months = hit.index % 12
-  const span = [years && `${years} ano${years > 1 ? 's' : ''}`, months && `${months} ${months > 1 ? 'meses' : 'mês'}`]
-    .filter(Boolean)
-    .join(' e ')
-  return { value: `${MONTH_NAMES[hit.month]} de ${hit.year}`, sub: `Meta de ${fmtBRL(goal)} · em ${span} (mês ${hit.index})` }
-}
-
-export function SummaryCards({ result, initial, goal, goalHit }: Props) {
-  const g = goal !== null ? goalText(goal, goalHit) : null
+export function SummaryCards({ result, initial }: Props) {
   return (
-    <div className={`grid grid-cols-2 gap-3 xl:grid-cols-4`}>
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       <Card label="Patrimônio final" value={fmtBRL(result.finalBalance)} />
       <Card label="Total aportado" value={fmtBRL(result.totalContributed)} sub={`+ ${fmtBRL(initial)} inicial`} swatch="var(--series-1)" />
       <Card label="Total de rendimentos" value={fmtBRL(result.totalInterest)} swatch="var(--series-2)" />
       <Card label="Vindo de rendimentos" value={fmtPercent(result.interestShare)} sub="do patrimônio final" />
-      {g && (
-        <div className="col-span-2 xl:col-span-4">
-          <Card label="Meta atingida em" value={g.value} sub={g.sub} />
-        </div>
-      )}
     </div>
   )
 }

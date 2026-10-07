@@ -6,7 +6,7 @@ import { ScenariosPanel, type Scenario } from './components/ScenariosPanel'
 import { SummaryCards } from './components/SummaryCards'
 import { defaultForm, validate, type FormValues } from './lib/form'
 import { fmtBRL } from './lib/format'
-import { findGoalMonth, groupByYear, monthLabel, monthlyPeriods, simulate, type MonthRow, type SimulationParams } from './lib/simulate'
+import { findGoalMonth, groupByYear, monthLabel, monthlyPeriods, simulate, type SimulationParams } from './lib/simulate'
 import { useScenarios } from './lib/scenarios'
 import { usePersistentState } from './lib/storage'
 
@@ -54,23 +54,19 @@ export default function App() {
   )
 
   const showCompare = chartMode === 'line' && comparedScenarios.length > 0
-  const monthlyChart = showCompare
-    ? Math.max(params.years, ...comparedScenarios.map((c) => c.params.years)) <= 3
-    : params.years <= 3
 
+  // O gráfico é sempre mês a mês, qualquer que seja o horizonte.
   const series: ChartSeries[] = useMemo(() => {
-    const periods = (months: MonthRow[], initial: number) =>
-      monthlyChart ? monthlyPeriods(months, initial) : groupByYear(months, initial)
     const list: ChartSeries[] = [
-      { key: 'current', name: showCompare ? 'Atual' : 'Saldo total', color: SERIES_COLORS[0], periods: monthlyChart ? monthRows : yearRows },
+      { key: 'current', name: showCompare ? 'Atual' : 'Saldo total', color: SERIES_COLORS[0], periods: monthRows },
     ]
     if (showCompare) {
       comparedScenarios.forEach((c, i) =>
-        list.push({ key: `s${i}`, name: c.scenario.name, color: SERIES_COLORS[i + 1], periods: periods(c.result.months, c.params.initial) }),
+        list.push({ key: `s${i}`, name: c.scenario.name, color: SERIES_COLORS[i + 1], periods: monthlyPeriods(c.result.months, c.params.initial) }),
       )
     }
     return list
-  }, [monthlyChart, monthRows, yearRows, showCompare, comparedScenarios])
+  }, [monthRows, showCompare, comparedScenarios])
 
   // Simulação de usufruto: a partir do mês escolhido, sem aportes e retirando todo mês
   // a retirada segura daquela data. Desliga sozinha se o horizonte encolher.
@@ -80,10 +76,10 @@ export default function App() {
     const from = result.months[activeRetireAt - 1]
     const amount = (from.endBalance * withdrawalRate) / 12
     const months = simulate({ ...params, withdrawal: { afterIndex: activeRetireAt, amount } }).months
-    const periods = monthlyChart ? monthlyPeriods(months, params.initial) : groupByYear(months, params.initial)
+    const periods = monthlyPeriods(months, params.initial)
     const start = periods.find((p) => p.endIndex >= activeRetireAt)!
     return { periods, startLabel: start.endLabel, amount }
-  }, [activeRetireAt, result, params, withdrawalRate, monthlyChart])
+  }, [activeRetireAt, result, params, withdrawalRate])
   const retireFrom = activeRetireAt !== null ? result.months[activeRetireAt - 1] : null
 
   const update = (patch: Partial<FormValues>) => setForm((f) => ({ ...f, ...patch }))
@@ -126,7 +122,7 @@ export default function App() {
             </div>
           )}
 
-          <SummaryCards result={result} initial={params.initial} goal={goal} goalHit={goalHit} />
+          <SummaryCards result={result} initial={params.initial} />
 
           <section className="rounded-2xl border border-line bg-surface-1 p-5" aria-labelledby="chart-title">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">

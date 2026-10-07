@@ -80,6 +80,8 @@ function BarTooltip({ active, payload }: TooltipContentProps) {
 
 export function EvolutionChart({ mode, series, goal, retirement }: Props) {
   const current = series[0]
+  // Com muitos meses as barras ficam finas demais para vão e contorno: viram uma área contínua.
+  const dense = current.periods.length > 120
 
   // Barras do cenário atual com o saldo da simulação com retiradas na mesma linha.
   const barData = useMemo(
@@ -158,14 +160,14 @@ export function EvolutionChart({ mode, series, goal, retirement }: Props) {
     <div className="h-80 w-full sm:h-96" role="img" aria-label={`${mode === 'bar' ? 'Gráfico de barras empilhadas: dinheiro investido e rendimentos por período' : 'Gráfico de linha do saldo total'}${retirement ? `, com simulação de retiradas a partir de ${retirement.startLabel}` : ''}`}>
       <ResponsiveContainer width="100%" height="100%">
         {mode === 'bar' ? (
-          <ComposedChart data={barData} {...common} barCategoryGap={current.periods.length > 30 ? 1 : '18%'}>
+          <ComposedChart data={barData} {...common} barCategoryGap={dense ? 0 : current.periods.length > 30 ? 1 : '18%'}>
             <CartesianGrid vertical={false} stroke="var(--grid)" />
             {xAxis}
             {yAxis}
             <Tooltip content={BarTooltip} cursor={{ fill: 'var(--surface-2)' }} isAnimationActive={false} />
             <Legend iconType="square" itemSorter={null} iconSize={10} wrapperStyle={{ fontSize: 13, color: 'var(--text-secondary)' }} />
-            <Bar dataKey="invested" name="Inicial + aportes" stackId="a" fill="var(--series-1)" stroke="var(--surface-1)" strokeWidth={1} isAnimationActive={false} />
-            <Bar dataKey="totalInterest" name="Rendimentos acumulados" stackId="a" fill="var(--series-2)" stroke="var(--surface-1)" strokeWidth={1} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+            <Bar dataKey="invested" name="Inicial + aportes" stackId="a" fill="var(--series-1)" stroke="var(--surface-1)" strokeWidth={dense ? 0 : 1} isAnimationActive={false} />
+            <Bar dataKey="totalInterest" name="Rendimentos acumulados" stackId="a" fill="var(--series-2)" stroke="var(--surface-1)" strokeWidth={dense ? 0 : 1} radius={dense ? 0 : [4, 4, 0, 0]} isAnimationActive={false} />
             {retirement && retireLine}
             {retireMarker}
             {goalLine}

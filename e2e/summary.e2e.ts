@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { openApp, STRESS_FORM, STRESS_SCALE } from './helpers'
 
-const CARD_LABELS = ['Patrimônio final', 'Total aportado', 'Total de rendimentos', 'Vindo de rendimentos', 'Meta atingida em']
+const CARD_LABELS = ['Patrimônio final', 'Total aportado', 'Total de rendimentos', 'Vindo de rendimentos']
 
 const VIEWPORTS = [
   { name: '320px@200%', viewport: { width: 320, height: 900 }, deviceScaleFactor: STRESS_SCALE },
