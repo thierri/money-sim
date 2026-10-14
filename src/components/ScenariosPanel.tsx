@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FormValues } from '../lib/form'
+import { exportScenarios, parseImport, type MergeResult } from '../lib/scenarios'
 
 export interface Scenario {
   id: string
@@ -13,16 +14,28 @@ interface Props {
   maxCompared: number
   colors: string[]
   canSave: boolean
-  loading: boolean
-  error: string | null
   onSave: (name: string) => void
   onLoad: (s: Scenario) => void
   onDelete: (s: Scenario) => void
   onToggleCompare: (id: string) => void
+  onImport: (incoming: Scenario[]) => MergeResult
 }
 
-export function ScenariosPanel({ scenarios, compared, maxCompared, colors, canSave, loading, error, onSave, onLoad, onDelete, onToggleCompare }: Props) {
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+function download(text: string, filename: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export function ScenariosPanel({ scenarios, compared, maxCompared, colors, canSave, onSave, onLoad, onDelete, onToggleCompare, onImport }: Props) {
   const [name, setName] = useState('')
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const submit = () => {
     const n = name.trim()
     if (!n || !canSave) return
@@ -30,9 +43,28 @@ export function ScenariosPanel({ scenarios, compared, maxCompared, colors, canSa
     setName('')
   }
 
+  const exportFile = () => {
+    const day = new Date().toISOString().slice(0, 10)
+    download(exportScenarios(scenarios), `money-sim-cenarios-${day}.json`)
+    setMessage(null)
+  }
+
+  const importFile = async (file: File) => {
+    const parsed = parseImport(await file.text())
+    if (!parsed || (parsed.scenarios.length === 0 && parsed.skipped > 0)) {
+      setMessage({ ok: false, text: `“${file.name}” não é um arquivo de cenários válido.` })
+      return
+    }
+    const { added, replaced } = onImport(parsed.scenarios)
+    const parts = [plural(added, 'cenário importado', 'cenários importados')]
+    if (replaced > 0) parts.push(plural(replaced, 'atualizado', 'atualizados'))
+    if (parsed.skipped > 0) parts.push(plural(parsed.skipped, 'inválido ignorado', 'inválidos ignorados'))
+    setMessage({ ok: true, text: parts.join(', ') + '.' })
+  }
+
   return (
     <section className="rounded-2xl border border-line bg-surface-1 p-5" aria-labelledby="scen-title">
-      <h2 id="scen-title" className="mb-3 text-base font-semibold">Cenários</h2>
+      <h2 id="scen-title" className="mb-3 text-base font-semibold">Cenários Salvos</h2>
       <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); submit() }}>
         <input
           className="field-input"
@@ -44,10 +76,7 @@ export function ScenariosPanel({ scenarios, compared, maxCompared, colors, canSa
         />
         <button type="submit" className="btn btn-primary shrink-0" disabled={!name.trim() || !canSave}>Salvar</button>
       </form>
-      {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
-      {loading ? (
-        <p className="mt-3 text-sm text-ink-3">Carregando cenários…</p>
-      ) : scenarios.length === 0 ? (
+      {scenarios.length === 0 ? (
         <p className="mt-3 text-sm text-ink-3">Salve os parâmetros atuais para reabri-los depois ou compará-los no gráfico de linha.</p>
       ) : (
         <>
@@ -75,6 +104,26 @@ export function ScenariosPanel({ scenarios, compared, maxCompared, colors, canSa
             })}
           </ul>
         </>
+      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+        <button type="button" className="btn px-2 py-1 text-xs" onClick={exportFile} disabled={scenarios.length === 0}>Exportar</button>
+        <button type="button" className="btn px-2 py-1 text-xs" onClick={() => fileRef.current?.click()}>Importar</button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          aria-label="Arquivo de cenários para importar"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            e.target.value = ''
+            if (file) void importFile(file)
+          }}
+        />
+        <span className="text-xs text-ink-3">Salvos só neste navegador</span>
+      </div>
+      {message && (
+        <p role={message.ok ? 'status' : 'alert'} className={`mt-2 text-sm ${message.ok ? 'text-ink-2' : 'text-danger'}`}>{message.text}</p>
       )}
     </section>
   )

@@ -16,7 +16,7 @@ const SERIES_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)']
 
 export default function App() {
   const [form, setForm] = usePersistentState<FormValues>('money-sim:form', defaultForm, (stored) => ({ ...defaultForm(), ...stored }))
-  const { scenarios, loading: scenariosLoading, error: scenariosError, save: saveScenario, remove: removeScenario } = useScenarios()
+  const { scenarios, save: saveScenario, remove: removeScenario, importMany: importScenarios } = useScenarios()
   const [compared, setCompared] = usePersistentState<string[]>('money-sim:compared', () => [])
   const [chartMode, setChartMode] = usePersistentState<'bar' | 'line'>('money-sim:chart', () => 'bar')
   const [tableView, setTableView] = usePersistentState<'month' | 'year'>('money-sim:table', () => 'year')
@@ -93,15 +93,12 @@ export default function App() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="flex flex-col gap-6">
-          <InputsPanel form={form} errors={validated.errors} onChange={update} onReset={() => setForm(defaultForm())} />
           <ScenariosPanel
             scenarios={scenarios}
             compared={compared}
             maxCompared={MAX_COMPARED}
             colors={SERIES_COLORS.slice(1)}
             canSave={!hasErrors}
-            loading={scenariosLoading}
-            error={scenariosError}
             onSave={(name) => saveScenario(name, form)}
             onLoad={(s) => setForm({ ...defaultForm(), ...s.form })}
             onDelete={(s) => {
@@ -112,7 +109,9 @@ export default function App() {
               setCompared((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id].slice(0, MAX_COMPARED)))
               if (!compared.includes(id)) setChartMode('line')
             }}
+            onImport={importScenarios}
           />
+          <InputsPanel form={form} errors={validated.errors} onChange={update} onReset={() => setForm(defaultForm())} />
         </aside>
 
         <main className="flex min-w-0 flex-col gap-6">
